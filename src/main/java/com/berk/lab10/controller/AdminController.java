@@ -1,57 +1,57 @@
 /*
- Bu controller sadece ADMIN yetkisine sahip kullanıcılar için olan sayfaları yönetir.
+  AdminController.java
 
- - Admin ping endpoint’i ile admin erişimi test edilir
- - Tüm kullanıcıların listelendiği admin sayfasını döner
- - @PreAuthorize ile method seviyesinde yetki kontrolü yapılır
+  Bu dosyada ne yapılıyor?
+  - Admin'e özel sayfaları yönetiyoruz.
+  - @PreAuthorize ile method seviyesinde rol kontrolü yapıyoruz.
+  - /admin/ping -> admin erişimi test sayfası
+  - /admin/users -> tüm kullanıcı listesini gösteren sayfa
 
- Kısaca: Admin’e özel işlemler burada toplanır.
+  Hocaya anlatım:
+  "Admin routes are protected with ROLE_ADMIN using method-level security
+   via @PreAuthorize."
 */
-
 
 package com.berk.lab10.controller;
 
-import com.berk.lab10.service.UserService;
-// Admin sayfasında kullanıcı listesini çekmek için servis katmanı kullanılır.
+import com.berk.lab10.service.UserService; // Kullanıcı listesini almak için servis
 
-import org.springframework.security.access.prepost.PreAuthorize;
-// Method seviyesinde yetkilendirme yapmak için kullanılır.
-// Bu anotasyon, method çalışmadan önce rol kontrolü yapar.
-
-import org.springframework.stereotype.Controller;
-// MVC controller olduğunu belirtir (HTML döner).
-
-import org.springframework.ui.Model;
-// View (HTML) tarafına veri taşımak için kullanılır.
-
-import org.springframework.web.bind.annotation.GetMapping;
-// HTTP GET isteklerini karşılamak için kullanılır.
+import org.springframework.security.access.prepost.PreAuthorize; // method bazlı güvenlik
+import org.springframework.stereotype.Controller;                // MVC controller (HTML)
+import org.springframework.ui.Model;                             // view'a data taşımak için
+import org.springframework.web.bind.annotation.GetMapping;       // GET endpoint
 
 @Controller
 public class AdminController {
 
     private final UserService userService;
-    // Admin işlemleri için kullanıcı verilerine ihtiyaç olduğu için servis kullanılır.
 
+    // Constructor injection
     public AdminController(UserService userService) {
         this.userService = userService;
     }
 
+    /*
+      GET /admin/ping
+      - Sadece ADMIN erişebilsin diye @PreAuthorize var.
+      - Basit bir HTML sayfa döner (admin-ping.html)
+    */
     @PreAuthorize("hasRole('ADMIN')")
-    // Bu method sadece ROLE_ADMIN olan kullanıcılar tarafından çalıştırılabilir.
     @GetMapping("/admin/ping")
     public String adminPing() {
-        // Admin erişiminin çalıştığını göstermek için basit bir sayfa döner.
         return "admin-ping";
     }
 
+    /*
+      GET /admin/users
+      - Sadece admin görebilir.
+      - userService.getAllUsers() ile DTO listesi alınır.
+      - model içine koyup admin-users.html'e göndeririz.
+    */
     @PreAuthorize("hasRole('ADMIN')")
-    // Kullanıcı listesini sadece admin görebilir.
     @GetMapping("/admin/users")
     public String adminUsers(Model model) {
-        // Tüm kullanıcılar servisten çekilir.
         model.addAttribute("users", userService.getAllUsers());
-        // Veriler admin-users.html sayfasına gönderilir.
         return "admin-users";
     }
 }

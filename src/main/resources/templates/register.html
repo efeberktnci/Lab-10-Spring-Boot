@@ -9,24 +9,38 @@
 
 <h2>Register</h2>
 
+<!-- Invalid email -->
+<div th:if="${param.error != null and param.error[0] == 'email'}">
+    <p style="color:red;">Invalid email address</p>
+</div>
+
+
 <!-- Email already exists -->
-<div th:if="${param.error != null and param.error.contains('exists')}">
+<div th:if="${param.error != null and param.error[0] == 'exists'}">
     <p style="color:red;">Email already exists</p>
 </div>
 
+<!-- Common password -->
+<div th:if="${param.error != null and param.error[0] == 'common'}">
+    <p style="color:red;">
+        Common password is not allowed. Please choose a stronger password.
+    </p>
+</div>
+
 <!-- Weak password -->
-<div th:if="${param.error != null and param.error.contains('weak')}">
+<div th:if="${param.error != null and param.error[0] == 'weak'}">
     <p style="color:red;">
         Weak password.
     </p>
     <ul style="color:red;">
-        <li>8 characters</li>
-        <li>1 uppercase letter</li>
-        <li>1 lowercase letter</li>
-        <li>1 number</li>
-        <li>1 special character</li>
+        <li>Minimum 5 characters</li>
+        <li>At least 1 uppercase letter</li>
+        <li>At least 1 lowercase letter</li>
+        <li>At least 1 number</li>
+        <li>At least 1 special character</li>
     </ul>
 </div>
+
 
 <form method="post" action="/register">
 

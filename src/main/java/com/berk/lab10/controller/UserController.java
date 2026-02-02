@@ -1,24 +1,29 @@
 /*
- Bu controller USER rolüne sahip kullanıcılar için örnek bir REST endpoint içerir.
+  UserController.java
 
- - /user/ping endpoint’i ile USER yetkisi test edilir
- - Login olmayan kullanıcılar bu endpoint’e erişemez
+  Bu dosyada ne yapılıyor?
+  - USER rolüyle korunan basit bir test endpoint'i var.
+  - /user/ping -> "USER OK" döner.
+  - Ama bu endpoint:
+      - login yoksa -> 401
+      - route security'de /user/** -> USER/ADMIN yetkisiyle çalışır
 
- Kısaca: USER rolünün çalıştığını göstermek için basit bir test controller’ıdır.
 */
+
 package com.berk.lab10.controller;
 
-import org.springframework.web.bind.annotation.*;
-// REST endpoint anotasyonlarını içerir.
+import org.springframework.web.bind.annotation.*; // REST anotasyonları
 
-@RestController
-// Bu controller JSON / text döner (HTML değil)
-@RequestMapping("/user")
-// Tüm endpoint’ler /user ile başlar
+@RestController // Bu controller HTML değil, direkt text/JSON döner
+@RequestMapping("/user") // bütün endpoint'ler /user ile başlar
 public class UserController {
 
+    /*
+      GET /user/ping
+      - Yetki test endpoint'i
+      - Başarılıysa "USER OK"
+    */
     @GetMapping("/ping")
-    // Kullanıcının USER yetkisine sahip olup olmadığını test etmek için
     public String ping() {
         return "USER OK";
     }

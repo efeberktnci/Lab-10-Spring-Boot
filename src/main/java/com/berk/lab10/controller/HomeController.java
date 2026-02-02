@@ -1,46 +1,47 @@
 /*
- Bu controller giriş yaptıktan sonra görülen ana sayfayı (home) yönetir.
+  HomeController.java
 
- - Login olan kullanıcının email bilgisini gösterir
- - Kullanıcının ADMIN olup olmadığını kontrol eder
- - Admin’e özel linklerin gösterilip gösterilmeyeceğine karar verir
+  Bu dosyada ne yapılıyor?
+  - Login olduktan sonra /home sayfasını gösteriyoruz.
+  - Kullanıcının email'ini ekrana basıyoruz.
+  - Kullanıcı admin mi diye kontrol edip view'da admin linklerini koşullu gösteriyoruz.
 
- Kısaca: Kullanıcı giriş yaptıktan sonra karşılaştığı ana sayfa burasıdır.
+  Hocaya anlatım:
+  “Authentication üzerinden doğrulanmış kullanıcıyı okuyoruz ve e-posta ile isAdmin bilgisini Thymeleaf view’a aktarıyoruz.”
 */
+
 package com.berk.lab10.controller;
 
-import org.springframework.security.core.Authentication;
-// Giriş yapan kullanıcının bilgilerini almak için kullanılır.
-
-import org.springframework.security.core.GrantedAuthority;
-// Kullanıcının rollerini kontrol etmek için kullanılır.
-
-import org.springframework.stereotype.Controller;
-// MVC controller (HTML döner).
-
-import org.springframework.ui.Model;
-// View tarafına veri göndermek için kullanılır.
-
-import org.springframework.web.bind.annotation.GetMapping;
-// GET isteklerini karşılamak için kullanılır.
+import org.springframework.security.core.Authentication;     // login olmuş kullanıcı bilgisi
+import org.springframework.security.core.GrantedAuthority;   // rol kontrolü
+import org.springframework.stereotype.Controller;            // MVC controller
+import org.springframework.ui.Model;                         // view'a data
+import org.springframework.web.bind.annotation.GetMapping;   // GET mapping
 
 @Controller
 public class HomeController {
 
+    /*
+      GET /home
+      - Authentication parametresi Spring tarafından otomatik verilir.
+      - auth.getName() -> bu projede email (usernameParameter=email)
+      - auth.getAuthorities() -> roller
+    */
     @GetMapping("/home")
     public String home(Authentication auth, Model model) {
 
-        // Kullanıcının admin olup olmadığı kontrol edilir
+        // Admin mi? -> role listesinde ROLE_ADMIN var mı?
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(a -> a.equals("ROLE_ADMIN"));
 
-        // Login olan kullanıcının email bilgisi view’a gönderilir
+        // Email'i view'a gönder
         model.addAttribute("email", auth != null ? auth.getName() : "");
 
-        // Admin olup olmadığı bilgisi view’a gönderilir
+        // Admin flag'i view'a gönder (Thymeleaf th:if ile kullanılır)
         model.addAttribute("isAdmin", isAdmin);
 
+        // templates/home.html
         return "home";
     }
 }

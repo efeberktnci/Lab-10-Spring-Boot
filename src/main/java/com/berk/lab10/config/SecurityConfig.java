@@ -6,8 +6,12 @@
  - Login ve logout işlemlerini Spring Security ile yönetir
  - CSRF korumasını aktif eder
  - Şifrelerin BCrypt ile hash’lenmesini sağlar
- - Yetkisiz erişimde redirect YAPMAZ, direkt 401 / 403 döner
+ - Yetkisiz erişimde:
+      * Browser (HTML) -> redirect /login veya /access-denied
+      * API (Accept: application/json) -> direkt 401 / 403 döner
  - @PreAuthorize gibi method-level güvenliği aktif eder
+ - HTTP security headers (CSP, nosniff, frame options, referrer policy) ekler
+ - Unauthorized/forbidden access attempt loglar
 
  Kısaca: Uygulamanın kapısı, kilidi ve anahtarı buradadır.
 */
@@ -15,69 +19,70 @@
 package com.berk.lab10.config;
 
 import org.springframework.context.annotation.Bean;
-// Spring’e bu metodun bir Bean ürettiğini söyler.
-// Yani bu nesne Spring tarafından yönetilir ve gerektiğinde otomatik kullanılır.
-
 import org.springframework.context.annotation.Configuration;
-// Bu sınıfın bir konfigürasyon (ayar) sınıfı olduğunu belirtir.
-// Spring uygulama başlarken bu sınıfı okur ve içindeki ayarları uygular.
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-// @PreAuthorize / method-level security için gerekli
-
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-// HTTP seviyesinde güvenlik ayarlarını yapmak için kullanılır.
-// Hangi URL korunacak, login gerekli mi, CSRF açık mı gibi kurallar buradan belirlenir.
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-// Şifreleri güvenli şekilde hash’lemek için kullanılır.
-
 import org.springframework.security.crypto.password.PasswordEncoder;
-// Şifre encode işlemleri için kullanılan arayüzdür.
 
 import org.springframework.security.web.SecurityFilterChain;
-// Spring Security’nin kalbidir.
-// Uygulamaya gelen her HTTP isteği bu filtre zincirinden geçer.
-
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-// CSRF token’ını cookie içinde saklamak için kullanılır.
-// Form gönderimlerinde sahte istekleri engeller.
-
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-// Login yoksa redirect yerine doğrudan HTTP status dönmek için
-
-import org.springframework.http.HttpStatus;
-// 401 / 403 gibi HTTP kodları
 
 @EnableMethodSecurity
-// @PreAuthorize("hasRole('ADMIN')") gibi anotasyonların çalışmasını sağlar
-
 @Configuration
 public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Kullanıcı şifrelerinin güvenli şekilde hash’lenmesini sağlar
-        return new BCryptPasswordEncoder();
+        // BCrypt strength parameter (cost factor)
+        // 10 default, 12 daha güçlü ve yaygın bir seçim
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            LoggingAuthenticationEntryPoint loggingAuthenticationEntryPoint,
+            LoggingAccessDeniedHandler loggingAccessDeniedHandler
+    ) throws Exception {
 
         http
-                // CSRF koruması açık
-                // Token cookie içinde tutulur ve her form isteğinde kontrol edilir
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(
-                                CookieCsrfTokenRepository.withHttpOnlyFalse()
-                        )
+                //  CSRF koruması açık.
+                // CookieCsrfTokenRepository.withHttpOnlyFalse() KALDIRILDI.
+                // Thymeleaf form'larda hidden _csrf token var; bu MVC için yeterli.
+                .csrf(csrf -> { })
+
+                //  HTTP and security headers (Lab 13 / checklist)
+                .headers(headers -> headers
+                        // X-Content-Type-Options: nosniff
+                        .contentTypeOptions(c -> { })
+
+                        // X-Frame-Options: SAMEORIGIN (istersen DENY yapabilirsin)
+                        .frameOptions(f -> f.sameOrigin())
+
+                        // Referrer-Policy
+                        .referrerPolicy(r -> r.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER
+                        ))
+
+                        // Content-Security-Policy (CSP)
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self'; " +
+                                        "style-src 'self' 'unsafe-inline'; " +
+                                        "img-src 'self' data:; " +
+                                        "object-src 'none'; " +
+                                        "base-uri 'self'; " +
+                                        "frame-ancestors 'self'"
+                        ))
                 )
 
                 // URL bazlı yetkilendirme kuralları
                 .authorizeHttpRequests(auth -> auth
 
                         // Login olmadan erişilebilen sayfalar
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**")
+                        .requestMatchers("/login", "/register", "/access-denied", "/error", "/css/**", "/js/**")
                         .permitAll()
 
                         // Sadece ADMIN rolüne sahip kullanıcılar erişebilir
@@ -93,20 +98,13 @@ public class SecurityConfig {
                         .authenticated()
                 )
 
-                // ❗ ÖNEMLİ KISIM
-                // Default davranış: yetkisiz kullanıcı login sayfasına redirect edilir
-                // İstenen davranış: redirect YOK, ekranda 401 / 403 göster
+                // Exception handling:
+                // - Browser HTML istekleri için redirect
+                // - API/JSON istekleri için 401/403
+                // + her iki durumda da SECURITY log bas
                 .exceptionHandling(ex -> ex
-
-                        // Login YOK → 401 Unauthorized
-                        .authenticationEntryPoint(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
-                        )
-
-                        // Login VAR ama yetki YOK → 403 Forbidden
-                        .accessDeniedHandler((request, response, ex2) ->
-                                response.sendError(HttpStatus.FORBIDDEN.value())
-                        )
+                        .authenticationEntryPoint(loggingAuthenticationEntryPoint)
+                        .accessDeniedHandler(loggingAccessDeniedHandler)
                 )
 
                 // Session tabanlı form login

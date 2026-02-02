@@ -1,50 +1,57 @@
 /*
- Bu sınıf veritabanındaki users tablosunu temsil eden JPA Entity’dir.
+  User.java (JPA Entity)
 
- - Kullanıcı bilgileri burada tanımlıdır
- - Hibernate/JPA bu sınıf üzerinden tabloya erişir
- - id, username, email, password ve role alanlarını içerir
+  Bu dosyada ne yapılıyor?
+  - DB'deki "users" tablosunu temsil eden entity.
+  - Spring Security login sırasında bu tablodan kullanıcıyı bulur.
+  - password alanı HASH olarak saklanır (BCrypt).
+  - role alanı ile authorization (USER/ADMIN) yapılır.
 
- Kısaca: Veritabanındaki kullanıcı tablosunun Java karşılığıdır.
+  Hocaya anlatım:
+  "This is the database-backed user entity used for authentication and role-based authorization."
 */
+
 package com.berk.lab10.model;
 
 import jakarta.persistence.*;
 
 @Entity
-// Bu sınıfın bir JPA entity olduğunu söyler.
-// Yani bu sınıf veritabanındaki bir tabloyu temsil eder.
 @Table(name = "users")
-// Veritabanındaki "users" tablosu ile eşleştirilir.
 public class User {
 
     @Id
-    // Bu alan primary key olduğunu belirtir.
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    // ID değeri veritabanı tarafından otomatik üretilir.
     private Integer id;
 
+    // Kullanıcı adı boş olamaz
     @Column(nullable = false)
-    // Kullanıcı adı boş olamaz.
     private String username;
 
+    // Email zorunlu ve unique
     @Column(nullable = false, unique = true)
-    // Email zorunlu ve benzersizdir.
     private String email;
 
+    /*
+      password:
+      - DB'de hash olarak tutulur (plain text değil)
+      - Login sırasında PasswordEncoder bunu verify eder
+    */
     @Column(nullable = false)
-    // Parola boş olamaz (hash’li olarak saklanır).
     private String password;
 
+    /*
+      role:
+      - ROLE_USER / ROLE_ADMIN
+      - Varsayılan: ROLE_USER
+      - SecurityConfig’de hasRole/hasAnyRole ile kontrol edilir
+    */
     @Column(nullable = false)
-    // Kullanıcının rolü (ROLE_USER veya ROLE_ADMIN).
-    // Varsayılan olarak ROLE_USER atanır.
     private String role = "ROLE_USER";
 
     // JPA için zorunlu boş constructor
     public User() {}
 
-    // Getter & Setter metodları
+    // Getter & Setter
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 

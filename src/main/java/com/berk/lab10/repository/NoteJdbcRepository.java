@@ -15,7 +15,7 @@ public class NoteJdbcRepository {
         this.jdbc = jdbc;
     }
 
-    // ✅ Prepared statement kullanır: ? placeholders
+    // Prepared statement kullanır: ? placeholders
     public List<NoteResponse> findAllByUserId(Integer userId) {
         String sql = "SELECT id, title, content, created_at FROM notes WHERE user_id = ? ORDER BY id DESC";
         return jdbc.query(sql, (rs, rowNum) ->
