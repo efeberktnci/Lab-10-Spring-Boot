@@ -443,8 +443,6 @@ HIBERNATE_DIALECT=org.hibernate.community.dialect.SQLiteDialect
 ADMIN_REGISTER_SECRET=CHANGE_ME_123
 ```
 
-⚠️ **Never commit `.env` to version control!**
-
 ---
 
 ## 📄 License
